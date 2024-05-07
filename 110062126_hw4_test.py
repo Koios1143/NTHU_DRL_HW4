@@ -170,7 +170,7 @@ def create_model():
 def to_numpy(var):
     return var.cpu().data.numpy()
 
-def to_tensor(ndarray, volatile=False, requires_grad=False, dtype=torch.cuda.FloatTensor):
+def to_tensor(ndarray, volatile=False, requires_grad=False, dtype=torch.FloatTensor):
     return torch.autograd.Variable(
         torch.from_numpy(ndarray), volatile=volatile, requires_grad=requires_grad
     ).type(dtype).to("cpu")
@@ -209,7 +209,7 @@ class Agent(object):
         return np.concatenate((a, b, c, d)).astype('float32')
 
     def load(self):
-        data = torch.load(open("110062126_hw4_data", 'rb'))
+        data = torch.load(open("110062126_hw4_data", 'rb'), map_location=torch.device('cpu'))
         self.actor.load_state_dict(data)
 
 if __name__ == '__main__':
@@ -217,6 +217,9 @@ if __name__ == '__main__':
     from xml.etree import ElementTree as ET
     import importlib.util
     import sys
+    import os
+
+    os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
 
     env = L2M2019Env(visualize=False,difficulty=2)
 
