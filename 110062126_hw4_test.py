@@ -117,7 +117,7 @@ class LinearNet(torch.nn.Module):
         
 class Actor(torch.nn.Module):
     def __init__(self, n_observation, n_action, layers,
-                 activation=torch.nn.ELU, layer_norm=True, last_activation=torch.nn.Tanh, init_w=3e-3):
+                 activation=torch.nn.ELU, layer_norm=True, last_activation=torch.nn.Tanh):
         super(Actor, self).__init__()
 
         linear_layer = NoisyNetLayer
@@ -131,16 +131,6 @@ class Actor(torch.nn.Module):
             activation=last_activation,
             layer_norm=False
         )
-        # self.init_weights(init_w)
-    
-    def init_weights(self, init_w):
-        for layer in self.feature_net.net:
-            if isinstance(layer, torch.nn.Linear):
-                layer.weight.data = torch.nn.init.kaiming_normal_(layer.weight.data, mode='fan_out', nonlinearity='relu')
-
-        for layer in self.policy_net.net:
-            if isinstance(layer, torch.nn.Linear):
-                layer.weight.data.uniform_(-init_w, init_w)
     
     def forward(self, observation):
         if isinstance(observation, np.ndarray):
@@ -189,7 +179,8 @@ class Agent(object):
         if self.frame_skip % 5 == 0:
             observation = self.modify_observation(observation)
             action = to_numpy(self.actor(to_tensor(np.array([observation], dtype=np.float32)))).squeeze(0)
-            action = np.clip(action, 0, 1.0)
+            action = np.clip(action, -1.0, 1.0)
+            action = action * 0.5 + 0.5
             self.last_action = action
         self.frame_skip += 1
         return self.last_action
@@ -211,6 +202,7 @@ class Agent(object):
     def load(self):
         data = torch.load(open("110062126_hw4_data", 'rb'), map_location=torch.device('cpu'))
         self.actor.load_state_dict(data)
+        self.actor.eval()
 
 if __name__ == '__main__':
     from osim.env import L2M2019Env
@@ -223,21 +215,21 @@ if __name__ == '__main__':
 
     env = L2M2019Env(visualize=False,difficulty=2)
 
-    xml_file_path = 'meta.xml'
-    tree = ET.parse(xml_file_path)
-    root = tree.getroot()
-    sub_name = ""
+    # xml_file_path = 'meta.xml'
+    # tree = ET.parse(xml_file_path)
+    # root = tree.getroot()
+    # sub_name = ""
 
-    for book in root.findall('info'):
-        sub_name =  book.find('name').text
+    # for book in root.findall('info'):
+    #     sub_name =  book.find('name').text
 
-    agent_path = sub_name + "_hw4_test.py"
-    module_name = agent_path.replace('/', '.').replace('.py', '')
-    spec = importlib.util.spec_from_file_location(module_name, agent_path)
-    module = importlib.util.module_from_spec(spec)
-    sys.modules[module_name] = module
-    spec.loader.exec_module(module)
-    Agent = getattr(module, 'Agent')
+    # agent_path = sub_name + "_hw4_test.py"
+    # module_name = agent_path.replace('/', '.').replace('.py', '')
+    # spec = importlib.util.spec_from_file_location(module_name, agent_path)
+    # module = importlib.util.module_from_spec(spec)
+    # sys.modules[module_name] = module
+    # spec.loader.exec_module(module)
+    # Agent = getattr(module, 'Agent')
 
     import time
     from tqdm import tqdm
